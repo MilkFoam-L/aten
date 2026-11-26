@@ -1,0 +1,51 @@
+# 生产部署：宿主机网络 + 只监听 127.0.0.1（与服务器上其他服务隔离端口，不占用 8080 等已用端口）。
+#   127.0.0.1:18701 现货机器人 API   127.0.0.1:18702 永续机器人 API   127.0.0.1:18703 推送服务
+# 对外只经 nginx（deploy/nginx/aten.conf）+ HTTPS。
+# 用法：docker compose -p aten -f deploy/docker-compose.prod.yml up -d   （在仓库根目录执行）
+x-bot: &bot
+  image: freqtradeorg/freqtrade:stable
+  restart: unless-stopped
+  network_mode: host
+  env_file: ../.env
+  volumes:
+    - ../user_data:/freqtrade/user_data
+
+services:
+  spot:
+    <<: *bot
+    container_name: aten-spot
+    environment:
+      FREQTRADE__API_SERVER__LISTEN_IP_ADDRESS: 127.0.0.1
+      FREQTRADE__API_SERVER__LISTEN_PORT: "18701"
+      FREQTRADE__WEBHOOK__URL: http://127.0.0.1:18703/hook/spot
+    command: >
+      trade --logfile /freqtrade/user_data/logs/spot.log
+      --db-url sqlite:////freqtrade/user_data/spot.sqlite
+      --config /freqtrade/user_data/config.base.json --config /freqtrade/user_data/config.spot.json
+      --strategy AtenMomentum
+
+  futures:
+    <<: *bot
+    container_name: aten-futures
+    environment:
+      FREQTRADE__API_SERVER__LISTEN_IP_ADDRESS: 127.0.0.1
+      FREQTRADE__API_SERVER__LISTEN_PORT: "18702"
+      FREQTRADE__WEBHOOK__URL: http://127.0.0.1:18703/hook/futures
+    command: >
+      trade --logfile /freqtrade/user_data/logs/futures.log
+      --db-url sqlite:////freqtrade/user_data/futures.sqlite
+      --config /freqtrade/user_data/config.base.json --config /freqtrade/user_data/config.futures.json
+      --strategy AtenMomentum
+
+  notifier:
+    image: freqtradeorg/freqtrade:stable
+    container_name: aten-notifier
+    restart: unless-stopped
+    network_mode: host
+    env_file: ../.env
+    environment:
+      ATEN_NOTIFIER_LISTEN: 127.0.0.1:18703
+      ATEN_BOTS: spot=http://127.0.0.1:18701,futures=http://127.0.0.1:18702
+    volumes:
+      - ../notifier:/notifier:ro
+    entrypoint: ["python", "/notifier/aten_notifier.py"]
