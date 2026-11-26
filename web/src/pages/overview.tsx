@@ -6,6 +6,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Pnl } from "@/components/pnl"
+import { SignalBoard } from "@/components/signal-board"
 import { TradeTable, type BotTrade } from "@/components/trade-table"
 import { usePoll } from "@/hooks/use-poll"
 import { allBots, api, botLabel, BOTS, snapshot, type Daily, type Snapshot } from "@/lib/api"
@@ -160,6 +161,8 @@ export function OverviewPage() {
           ? BOTS.map((b) => <Skeleton key={b.id} className="h-64" />)
           : ok.map((s) => <BotCard key={s.bot} s={s} />)}
       </div>
+
+      <SignalBoard />
 
       <DailyChart />
 

@@ -17,5 +17,6 @@
   },
   "webhook": {
     "url": "http://notifier:8090/hook/spot"
-  }
+  },
+  "dry_run_wallet": 5000
 }

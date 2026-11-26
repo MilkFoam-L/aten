@@ -2,7 +2,8 @@
 
 * POST /hook/<bot>    接收 Freqtrade webhook（开平仓成交、启动、异常），格式化成中文推到 QQ 群
 * 每 60 秒探活各机器人，连续 5 次失败告警「离线」，恢复后告警「已恢复」
-* 每天 ATEN_DAILY_REPORT_HOUR 点（北京时间，默认 21）推日报：权益、累计/当日盈亏、持仓
+* 每天 ATEN_DAILY_REPORT_HOUR:15（北京时间，默认 8 点，即日线收盘、机器人下单之后）推「每日决策 + 日报」：
+  BTC 牛熊状态、各币信号与今日操作原因、权益、盈亏、持仓——和 Quanti 的决策日志一样，空仓时也说明原因
 
 推送走 QQ 机器人（OneBot）的 Aten 专用推送入口；目标群由机器人侧配置决定，这里无法指定。
 推送失败只记日志，绝不影响交易。环境变量见 .env.example。
@@ -231,6 +232,62 @@ def watch_loop() -> None:
         time.sleep(60)
 
 
+def signal_rows(api: "Api") -> tuple[dict, list[dict]]:
+    """读策略已分析的最新收盘 K 线，按 AtenMomentum 的规则还原每个币的状态。
+
+    规则与策略一致：BTC 在 200 日均线上方 且 30 日动量 > 0 且 收盘 > EMA50 → 入场条件满足；
+    持仓中出现 动量 < 0 或 收盘 < EMA50 → 离场信号。
+    """
+    cfg = api.get("show_config")
+    held = {t["pair"] for t in api.get("status")}
+    rows, btc = [], {}
+    for pair in api.get("whitelist")["whitelist"]:
+        q = urllib.request.quote(pair, safe="")
+        d = api.get(f"pair_candles?pair={q}&timeframe={cfg['timeframe']}&limit=2")
+        if not d.get("data"):
+            continue
+        last = dict(zip(d["columns"], d["data"][-1]))
+        ret, ema, close = last.get("ret30"), last.get("ema50"), last.get("close")
+        if not btc and last.get("btc_sma200"):
+            btc = {"close": last.get("btc_close"), "sma": last.get("btc_sma200"), "bull": last.get("btc_bull") == 1,
+                   "date": str(last.get("date", ""))[:10]}
+        if ret is None or ema is None:
+            state, why = "数据不足", ""
+        elif pair in held:
+            exit_ = ret < 0 or close < ema
+            state, why = ("离场信号", "动量转负" if ret < 0 else "跌破 EMA50") if exit_ else ("持有", "趋势延续")
+        elif not btc.get("bull"):
+            state, why = "观望", "BTC 熊市过滤"
+        elif ret <= 0:
+            state, why = "观望", "30 日动量为负"
+        elif close <= ema:
+            state, why = "观望", "低于 EMA50"
+        else:
+            state, why = "入场", "动量向上且在 EMA50 上方"
+        rows.append({"pair": pair, "ret": ret, "state": state, "why": why})
+    return btc, rows
+
+
+def decision_lines(btc: dict, rows: list[dict]) -> list[str]:
+    out = []
+    if btc:
+        gap = (btc["close"] / btc["sma"] - 1) if btc.get("sma") else 0
+        out.append(f"    BTC {num(btc['close'], 0)}，年线 {num(btc['sma'], 0)}（{gap:+.1%}）→ "
+                   + ("牛市，允许开多" if btc["bull"] else "熊市，不开新仓"))
+    active = [r for r in rows if r["state"] in ("入场", "持有", "离场信号")]
+    if not active and btc and not btc["bull"]:
+        out.append("    今日操作：空仓等待（BTC 回到年线上方后才会开仓）")
+        return out
+    for r in active:
+        out.append(f"    {r['state']} {pair_label(r['pair'])} · 30日 {pct(r['ret'])} · {r['why']}")
+    watch = [pair_label(r["pair"]).split("/")[0] for r in rows if r["state"] == "观望"]
+    if watch:
+        out.append(f"    观望 {len(watch)} 个：{'、'.join(watch)}")
+    if not active:
+        out.append("    今日操作：无（没有币满足入场条件）")
+    return out
+
+
 def daily_report() -> tuple[str, str]:
     lines = []
     total = 0.0
@@ -243,6 +300,10 @@ def daily_report() -> tuple[str, str]:
             lines.append(f"{label}\n    读取失败：{type(e).__name__}")
             continue
         total += float(bal.get("total") or 0)
+        try:
+            decisions = decision_lines(*signal_rows(api))
+        except Exception as e:  # noqa: BLE001 - 决策读不到也照发日报
+            decisions = [f"    策略信号读取失败：{type(e).__name__}"]
         lines.append(
             f"{label}\n"
             f"    权益 {num(bal.get('total'))} USDT\n"
@@ -250,20 +311,22 @@ def daily_report() -> tuple[str, str]:
             f"    累计 {float(prof.get('profit_all_coin') or 0):+,.2f}（{pct(prof.get('profit_all_ratio'))}）"
             f" · 胜率 {float(prof.get('winrate') or 0) * 100:.0f}%"
         )
+        lines.extend(decisions)
         for t in open_[:8]:
             side = "空" if t.get("is_short") else "多"
             lines.append(f"    {side} {pair_label(t['pair'])} {pct(t.get('profit_ratio'))}")
         if len(open_) > 8:
             lines.append(f"    …共 {len(open_)} 个持仓")
-    title = f"Aten 日报 {datetime.now(TZ):%m-%d} · 总权益 {num(total)}"
+    title = f"Aten 每日决策 {datetime.now(TZ):%m-%d} · 总权益 {num(total)}"
     return title, "\n".join(lines)
 
 
 def report_loop() -> None:
-    hour = int(env("ATEN_DAILY_REPORT_HOUR", "21"))
+    hour = int(env("ATEN_DAILY_REPORT_HOUR", "8"))
     while True:
         now = datetime.now(TZ)
-        nxt = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        # :15 —— 日线 UTC 0 点（北京 8 点）收盘后机器人约 1 分钟内下单，限价单 10 分钟超时，15 分时结果已定
+        nxt = now.replace(hour=hour, minute=15, second=0, microsecond=0)
         if nxt <= now:
             nxt += timedelta(days=1)
         time.sleep((nxt - now).total_seconds())

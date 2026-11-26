@@ -124,9 +124,14 @@ def _btc_regime(strategy: IStrategy, df: DataFrame, metadata: dict) -> DataFrame
     from freqtrade.strategy import merge_informative_pair
 
     btc = strategy.dp.get_pair_dataframe(_btc_pair(strategy), "1d").copy()
-    btc["bull"] = (btc["close"] > btc["close"].rolling(200).mean()).astype(int)
-    df = merge_informative_pair(df, btc[["date", "bull"]], strategy.timeframe, "1d", ffill=True)
+    btc["sma200"] = btc["close"].rolling(200).mean()
+    btc["bull"] = (btc["close"] > btc["sma200"]).astype(int)
+    btc = btc.rename(columns={"close": "btcclose"})
+    df = merge_informative_pair(df, btc[["date", "bull", "btcclose", "sma200"]], strategy.timeframe, "1d", ffill=True)
     df["btc_bull"] = df["bull_1d"].fillna(0)
+    # 供控制台 / 每日决策推送展示「BTC 离年线多远」
+    df["btc_close"] = df["btcclose_1d"]
+    df["btc_sma200"] = df["sma200_1d"]
     return df
 
 

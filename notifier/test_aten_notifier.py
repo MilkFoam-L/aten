@@ -49,5 +49,24 @@ class FormatTests(unittest.TestCase):
             del os.environ["ATEN_QQ_PUSH_URL"], os.environ["ATEN_QQ_PUSH_TOKEN"]
 
 
+class DecisionTests(unittest.TestCase):
+    def test_bear_market_says_why_flat(self):
+        lines = n.decision_lines({"close": 60458, "sma": 72088, "bull": False},
+                                 [{"pair": "BTC/USDT", "ret": -0.25, "state": "观望", "why": "BTC 熊市过滤"}])
+        self.assertIn("熊市，不开新仓", lines[0])
+        self.assertIn("-16.1%", lines[0])
+        self.assertIn("空仓等待", lines[1])
+
+    def test_bull_lists_actions_and_watchlist(self):
+        rows = [{"pair": "SOL/USDT:USDT", "ret": 0.12, "state": "入场", "why": "动量向上且在 EMA50 上方"},
+                {"pair": "ETH/USDT:USDT", "ret": 0.05, "state": "持有", "why": "趋势延续"},
+                {"pair": "DOGE/USDT:USDT", "ret": -0.1, "state": "观望", "why": "30 日动量为负"}]
+        lines = n.decision_lines({"close": 80000, "sma": 70000, "bull": True}, rows)
+        self.assertIn("牛市，允许开多", lines[0])
+        self.assertIn("入场 SOL/USDT · 30日 +12.00%", lines[1])
+        self.assertIn("持有 ETH/USDT", lines[2])
+        self.assertEqual(lines[3], "    观望 1 个：DOGE")
+
+
 if __name__ == "__main__":
     unittest.main()
