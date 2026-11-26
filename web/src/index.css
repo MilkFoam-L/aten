@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+/* 字体本地打包，不走 Google Fonts（国内访问慢会卡首屏） */
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: "Inter Variable", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    --color-up: var(--up);
+    --color-up-soft: var(--up-soft);
+    --color-down: var(--down);
+    --color-down-soft: var(--down-soft);
+    --color-warn: var(--warn);
+    --color-warn-soft: var(--warn-soft);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * 设计方向：沿用 quanti 的「研报纸面」—— 暖白纸底 + 墨色正文 + 墨蓝主操作色；
+ * 深色为「墨夜」—— 偏蓝的深墨底，适合 7×24 盯盘。
+ * 涨/跌/提醒是语义色，只在对应含义上出现。默认加密惯例「绿涨红跌」，
+ * <html data-updown="cn"> 时切为 A 股习惯「红涨绿跌」。
+ */
+:root {
+    --radius: 0.5rem;
+    --background: oklch(0.982 0.004 85);
+    --foreground: oklch(0.21 0.015 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.21 0.015 260);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.21 0.015 260);
+    --primary: oklch(0.42 0.12 258);
+    --primary-foreground: oklch(0.985 0.002 258);
+    --secondary: oklch(0.955 0.006 85);
+    --secondary-foreground: oklch(0.27 0.015 260);
+    --muted: oklch(0.955 0.006 85);
+    --muted-foreground: oklch(0.5 0.015 260);
+    --accent: oklch(0.95 0.02 258);
+    --accent-foreground: oklch(0.3 0.09 258);
+    --destructive: oklch(0.55 0.2 27);
+    --border: oklch(0.905 0.006 85);
+    --input: oklch(0.88 0.008 85);
+    --ring: oklch(0.42 0.12 258 / 55%);
+
+    --green: oklch(0.55 0.14 155);
+    --green-soft: oklch(0.955 0.035 155);
+    --red: oklch(0.56 0.2 26);
+    --red-soft: oklch(0.96 0.025 26);
+    --up: var(--green);
+    --up-soft: var(--green-soft);
+    --down: var(--red);
+    --down-soft: var(--red-soft);
+    --warn: oklch(0.62 0.14 70);
+    --warn-soft: oklch(0.965 0.04 85);
+
+    /* 图表：主序列墨蓝，其余避开红绿 */
+    --chart-1: oklch(0.42 0.12 258);
+    --chart-2: oklch(0.72 0.14 70);
+    --chart-3: oklch(0.6 0.08 200);
+    --chart-4: oklch(0.55 0.12 300);
+    --chart-5: oklch(0.65 0.01 260);
+
+    --sidebar: oklch(0.965 0.006 85);
+    --sidebar-foreground: oklch(0.27 0.015 260);
+    --sidebar-primary: oklch(0.42 0.12 258);
+    --sidebar-primary-foreground: oklch(0.985 0.002 258);
+    --sidebar-accent: oklch(0.925 0.012 258);
+    --sidebar-accent-foreground: oklch(0.25 0.06 258);
+    --sidebar-border: oklch(0.905 0.006 85);
+    --sidebar-ring: oklch(0.42 0.12 258 / 55%);
+}
+
+.dark {
+    --background: oklch(0.17 0.018 262);
+    --foreground: oklch(0.94 0.008 260);
+    --card: oklch(0.205 0.02 262);
+    --card-foreground: oklch(0.94 0.008 260);
+    --popover: oklch(0.225 0.022 262);
+    --popover-foreground: oklch(0.94 0.008 260);
+    --primary: oklch(0.72 0.12 255);
+    --primary-foreground: oklch(0.17 0.03 262);
+    --secondary: oklch(0.26 0.02 262);
+    --secondary-foreground: oklch(0.92 0.008 260);
+    --muted: oklch(0.24 0.018 262);
+    --muted-foreground: oklch(0.68 0.018 260);
+    --accent: oklch(0.28 0.04 258);
+    --accent-foreground: oklch(0.92 0.03 255);
+    --destructive: oklch(0.68 0.19 24);
+    --border: oklch(0.94 0.02 260 / 10%);
+    --input: oklch(0.94 0.02 260 / 14%);
+    --ring: oklch(0.72 0.12 255 / 55%);
+
+    --green: oklch(0.74 0.15 158);
+    --green-soft: oklch(0.74 0.15 158 / 14%);
+    --red: oklch(0.68 0.19 24);
+    --red-soft: oklch(0.68 0.19 24 / 14%);
+    --warn: oklch(0.8 0.14 78);
+    --warn-soft: oklch(0.8 0.14 78 / 14%);
+
+    --chart-1: oklch(0.72 0.12 255);
+    --chart-2: oklch(0.8 0.14 78);
+    --chart-3: oklch(0.72 0.09 200);
+    --chart-4: oklch(0.7 0.13 300);
+    --chart-5: oklch(0.6 0.015 260);
+
+    --sidebar: oklch(0.15 0.018 262);
+    --sidebar-foreground: oklch(0.88 0.01 260);
+    --sidebar-primary: oklch(0.72 0.12 255);
+    --sidebar-primary-foreground: oklch(0.17 0.03 262);
+    --sidebar-accent: oklch(0.24 0.03 260);
+    --sidebar-accent-foreground: oklch(0.95 0.01 260);
+    --sidebar-border: oklch(0.94 0.02 260 / 8%);
+    --sidebar-ring: oklch(0.72 0.12 255 / 55%);
+}
+
+[data-updown="cn"] {
+    --up: var(--red);
+    --up-soft: var(--red-soft);
+    --down: var(--green);
+    --down-soft: var(--green-soft);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-variant-numeric: tabular-nums;
+    }
+  html {
+    @apply font-sans;
+    }
+}
