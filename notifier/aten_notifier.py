@@ -1,7 +1,7 @@
 """Aten → QQ 群推送服务（仅标准库）。
 
 * POST /hook/<bot>    接收 Freqtrade webhook（开平仓成交、启动、异常），格式化成中文推到 QQ 群
-* 每 60 秒探活各机器人，连续 3 次失败告警「离线」，恢复后告警「已恢复」
+* 每 60 秒探活各机器人，连续 5 次失败告警「离线」，恢复后告警「已恢复」
 * 每天 ATEN_DAILY_REPORT_HOUR 点（北京时间，默认 21）推日报：权益、累计/当日盈亏、持仓
 
 推送走 QQ 机器人（OneBot）的 Aten 专用推送入口；目标群由机器人侧配置决定，这里无法指定。
@@ -25,6 +25,7 @@ from zoneinfo import ZoneInfo
 log = logging.getLogger("aten-notifier")
 TZ = ZoneInfo("Asia/Shanghai")
 MAX_MESSAGE = 3500
+OFFLINE_AFTER = 5  # 连续探活失败次数（每分钟一次）
 
 BOT_LABEL = {"spot": "现货", "futures": "永续"}
 EXIT_REASON = {
@@ -212,7 +213,7 @@ def refresh_mode() -> None:
 
 
 def watch_loop() -> None:
-    """探活：连续 3 次失败才告警，避免重启时误报。"""
+    """探活：连续 5 次失败才告警。OKX 永续启动要初始化 500+ 合约杠杆档位，约 1~2 分钟不响应，阈值低了会误报。"""
     while True:
         for name, api in STATE.apis.items():
             if api.ping():
@@ -222,10 +223,10 @@ def watch_loop() -> None:
                     push(f"{BOT_LABEL.get(name, name)}机器人已恢复", "    API 恢复响应，交易继续。")
                 continue
             STATE.failures[name] = STATE.failures.get(name, 0) + 1
-            if STATE.failures[name] == 3:
+            if STATE.failures[name] == OFFLINE_AFTER:
                 STATE.down.add(name)
                 push(f"{BOT_LABEL.get(name, name)}机器人离线",
-                     "    连续 3 分钟无响应，持仓的止损可能无法执行。\n    下一步：登录服务器 docker compose ps 检查")
+                     f"    连续 {OFFLINE_AFTER} 分钟无响应，持仓的止损可能无法执行。\n    下一步：登录服务器 docker compose ps 检查")
         refresh_mode()
         time.sleep(60)
 
