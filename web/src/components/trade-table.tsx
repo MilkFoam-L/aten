@@ -18,7 +18,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pnl } from "@/components/pnl"
 import { botLabel, post, type BotId, type Trade } from "@/lib/api"
-import { dateTime, pairLabel, price, since } from "@/lib/format"
+import { dateTime, enterTag, exitReason, pairLabel, price, since } from "@/lib/format"
 
 export type BotTrade = Trade & { bot: BotId }
 
@@ -97,6 +97,9 @@ export function TradeTable({
                 <div className="text-xs text-muted-foreground">
                   {botLabel(t.bot)} · #{t.trade_id}
                 </div>
+                <div className="max-w-56 truncate text-xs text-muted-foreground" title={enterTag(t.enter_tag)}>
+                  开仓：{enterTag(t.enter_tag)}
+                </div>
               </TableCell>
               <TableCell>
                 <Side t={t} />
@@ -116,7 +119,7 @@ export function TradeTable({
                     {t.liquidation_price != null && <span className="text-down"> / {price(t.liquidation_price)}</span>}
                   </>
                 ) : (
-                  t.exit_reason ?? "—"
+                  exitReason(t.exit_reason)
                 )}
               </TableCell>
               <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
