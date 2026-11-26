@@ -1,0 +1,12 @@
+{
+  "max_open_trades": 10,
+  "stake_amount": "unlimited",
+  "tradable_balance_ratio": 0.99,
+  "dry_run_wallet": 10000,
+  "exchange": {
+    "pair_whitelist": [
+      "BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "BNB/USDT:USDT", "XRP/USDT:USDT",
+      "DOGE/USDT:USDT", "ADA/USDT:USDT", "AVAX/USDT:USDT", "LINK/USDT:USDT", "LTC/USDT:USDT"
+    ]
+  }
+}

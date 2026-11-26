@@ -1,0 +1,43 @@
+# 本地开发用。两个 Freqtrade 机器人（现货 / 永续合约）+ QQ 推送服务；生产部署见 deploy/。
+#引擎用官方镜像、不改源码，便于跟随上游升级。
+# 端口只绑 127.0.0.1，对外请经反向代理 + HTTPS。
+x-bot: &bot
+  image: freqtradeorg/freqtrade:stable
+  restart: unless-stopped
+  env_file: .env
+  volumes:
+    - ./user_data:/freqtrade/user_data
+
+services:
+  spot:
+    <<: *bot
+    container_name: tilefish-spot
+    ports: ["127.0.0.1:8080:8080"]
+    command: >
+      trade
+      --logfile /freqtrade/user_data/logs/spot.log
+      --db-url sqlite:////freqtrade/user_data/spot.sqlite
+      --config /freqtrade/user_data/config.base.json
+      --config /freqtrade/user_data/config.spot.json
+      --strategy AtenMomentum
+
+  futures:
+    <<: *bot
+    container_name: tilefish-futures
+    ports: ["127.0.0.1:8081:8080"]
+    command: >
+      trade
+      --logfile /freqtrade/user_data/logs/futures.log
+      --db-url sqlite:////freqtrade/user_data/futures.sqlite
+      --config /freqtrade/user_data/config.base.json
+      --config /freqtrade/user_data/config.futures.json
+      --strategy AtenMomentum
+
+  notifier:
+    image: freqtradeorg/freqtrade:stable  # 复用镜像里的 Python，推送服务只用标准库
+    container_name: tilefish-notifier
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./notifier:/notifier:ro
+    entrypoint: ["python", "/notifier/aten_notifier.py"]

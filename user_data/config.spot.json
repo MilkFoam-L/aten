@@ -1,0 +1,21 @@
+{
+  "bot_name": "spot",
+  "trading_mode": "spot",
+  "exchange": {
+    "pair_whitelist": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "BNB/USDT",
+      "XRP/USDT",
+      "DOGE/USDT",
+      "ADA/USDT",
+      "AVAX/USDT",
+      "LINK/USDT",
+      "LTC/USDT"
+    ]
+  },
+  "webhook": {
+    "url": "http://notifier:8090/hook/spot"
+  }
+}
